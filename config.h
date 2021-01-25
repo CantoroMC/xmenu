@@ -1,20 +1,20 @@
 static struct Config config = {
 	/* font, separate different fonts with comma */
-	.font = "monospace:size=9,DejaVuSansMono:size=9",
+	.font = "Operator Mono Lig Book:pixelsize=10:antialias=true:autohint=true",
 
 	/* colors */
-	.background_color = "#FFFFFF",
-	.foreground_color = "#2E3436",
-	.selbackground_color = "#3584E4",
-	.selforeground_color = "#FFFFFF",
-	.separator_color = "#CDC7C2",
-	.border_color = "#E6E6E6",
+	.background_color = "#151a1e",
+	.foreground_color = "#eaeaea",
+	.selbackground_color = "#B8CC52",
+	.selforeground_color = "#151a1e",
+	.separator_color = "#36A3D9",
+	.border_color = "#B8CC52",
 
 	/* sizes in pixels */
 	.width_pixels = 130,        /* minimum width of a menu */
 	.height_pixels = 25,        /* height of a single menu item */
 	.border_pixels = 1,         /* menu border */
-	.separator_pixels = 3,      /* space around separator */
+	.separator_pixels = 2,      /* space around separator */
 	.gap_pixels = 0,            /* gap between menus */
 
 	/* text alignment, set to LeftAlignment, CenterAlignment or RightAlignment */
@@ -30,7 +30,7 @@ static struct Config config = {
 	.triangle_height = 7,
 
 	/* the icon size is equal to .height_pixels - .iconpadding * 2 */
-	.iconpadding = 2,
+	.iconpadding = 3,
 
 	/* area around the icon, the triangle and the separator */
 	.horzpadding = 8,
@@ -53,9 +53,9 @@ static struct Config config = {
  * If you do not want to set a key binding, keep it with the value of
  * XK_VoidSymbol
  */
-#define KSYMFIRST   XK_VoidSymbol       /* select first item */
-#define KSYMLAST    XK_VoidSymbol       /* select last item */
-#define KSYMUP      XK_VoidSymbol       /* select previous item */
-#define KSYMDOWN    XK_VoidSymbol       /* select next item */
-#define KSYMLEFT    XK_VoidSymbol       /* close current menu */
-#define KSYMRIGHT   XK_VoidSymbol       /* enter selected item */
+#define KSYMFIRST   XK_p       /* select first item */
+#define KSYMLAST    XK_n       /* select last item */
+#define KSYMUP      XK_k       /* select previous item */
+#define KSYMDOWN    XK_j       /* select next item */
+#define KSYMLEFT    XK_h       /* close current menu */
+#define KSYMRIGHT   XK_l       /* enter selected item */
