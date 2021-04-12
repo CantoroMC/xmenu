@@ -432,6 +432,10 @@ buildmenutree(unsigned level, const char *label, const char *output, char *file)
 		for (item = prevmenu->list; item->next != NULL; item = item->next)
 			;
 
+		/* a separator is no valid root for a submenu */
+		if (!item->label)
+			errx(1, "a separator is no valid root for a submenu");
+
 		prevmenu = menu;
 		menu->caller = item;
 		item->submenu = menu;
@@ -717,8 +721,10 @@ setupmenu(struct Menu *menu, XClassHint *classh)
 	/* set window title (used if wflag is on) */
 	if (menu->parent == NULL) {
 		title = classh->res_name;
-	} else {
+	} else if (menu->caller->output) {
 		title = menu->caller->output;
+	} else {
+		title = "\0";
 	}
 	XStringListToTextProperty(&title, 1, &wintitle);
 
@@ -1129,15 +1135,35 @@ itemcycle(struct Menu *currmenu, int direction)
 	return item;
 }
 
+/* check if button is used to scroll */
+static int
+isscrollbutton(unsigned int button)
+{
+	if (button == Button4 || button == Button5)
+		return 1;
+	return 0;
+}
+
 /* check if button is used to open a item on click */
 static int
 isclickbutton(unsigned int button)
 {
-	if (button == Button1)
+	if (button == Button1 || button == Button2)
 		return 1;
 	if (!rflag && button == Button3)
 		return 1;
 	return 0;
+}
+
+/* warp pointer to center of selected item */
+static void
+warppointer(struct Menu *menu, struct Item *item)
+{
+	if (menu == NULL || item == NULL)
+		return;
+	if (menu->selected) {
+		XWarpPointer(dpy, None, menu->win, 0, 0, 0, 0, menu->w / 2, item->y + item->h / 2);
+	}
 }
 
 /* append buf into text */
@@ -1240,6 +1266,7 @@ run(struct Menu *currmenu)
 	KeySym ksym;
 	Status status;
 	XEvent ev;
+	int warped = 0;
 	int action;
 	int len;
 	int i;
@@ -1256,38 +1283,50 @@ run(struct Menu *currmenu)
 				action = ACTION_DRAW;
 			break;
 		case MotionNotify:
-			menu = getmenu(currmenu, ev.xbutton.window);
-			item = getitem(menu, ev.xbutton.y);
-			if (menu == NULL || item == NULL || previtem == item)
-				break;
-			previtem = item;
-			select = menu->selected = item;
-			if (item->submenu != NULL) {
-				currmenu = item->submenu;
-				select = NULL;
-			} else {
-				currmenu = menu;
+			if (!warped) {
+				menu = getmenu(currmenu, ev.xbutton.window);
+				item = getitem(menu, ev.xbutton.y);
+				if (menu == NULL || item == NULL || previtem == item)
+					break;
+				previtem = item;
+				select = menu->selected = item;
+				if (item->submenu != NULL) {
+					currmenu = item->submenu;
+					select = NULL;
+				} else {
+					currmenu = menu;
+				}
+				action = ACTION_CLEAR | ACTION_SELECT | ACTION_MAP | ACTION_DRAW;
 			}
-			action = ACTION_CLEAR | ACTION_SELECT | ACTION_MAP | ACTION_DRAW;
+			warped = 0;
 			break;
 		case ButtonRelease:
-			if (!isclickbutton(ev.xbutton.button))
-				break;
-			menu = getmenu(currmenu, ev.xbutton.window);
-			item = getitem(menu, ev.xbutton.y);
-			if (menu == NULL || item == NULL)
-				break;
+			if (isscrollbutton(ev.xbutton.button)) {
+				if (ev.xbutton.button == Button4)
+					select = itemcycle(currmenu, ITEMPREV);
+				else
+					select = itemcycle(currmenu, ITEMNEXT);
+				action = ACTION_CLEAR | ACTION_SELECT | ACTION_DRAW | ACTION_WARP;
+			} else if (isclickbutton(ev.xbutton.button)) {
+				menu = getmenu(currmenu, ev.xbutton.window);
+				item = getitem(menu, ev.xbutton.y);
+				if (menu == NULL || item == NULL)
+					break;
 enteritem:
-			if (item->label == NULL)
-				break;  /* ignore separators */
-			if (item->submenu != NULL) {
-				currmenu = item->submenu;
-			} else {
-				printf("%s\n", item->output);
-				return;
+				if (item->label == NULL)
+					break;  /* ignore separators */
+				if (item->submenu != NULL) {
+					currmenu = item->submenu;
+				} else {
+					printf("%s\n", item->output);
+					return;
+				}
+				select = currmenu->list;
+				action = ACTION_CLEAR | ACTION_SELECT | ACTION_MAP | ACTION_DRAW;
+				if (ev.xbutton.button == Button2) {
+					action |= ACTION_WARP;
+				}
 			}
-			select = currmenu->list;
-			action = ACTION_CLEAR | ACTION_SELECT | ACTION_MAP | ACTION_DRAW;
 			break;
 		case ButtonPress:
 			menu = getmenu(currmenu, ev.xbutton.window);
@@ -1419,6 +1458,10 @@ append:
 			mapmenu(currmenu);
 		if (action & ACTION_DRAW)
 			drawmenus(currmenu);
+		if (action & ACTION_WARP) {
+			warppointer(currmenu, select);
+			warped = 1;
+		}
 	}
 }
 
